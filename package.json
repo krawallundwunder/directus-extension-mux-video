@@ -54,9 +54,6 @@
         "@mux/mux-player": "^2.3.3",
         "@mux/mux-uploader": "^1.0.0-beta.15",
         "@mux/mux-video": "^0.17.3",
-        "axios": "^1.6.8",
-        "body-parser": "^1.20.3",
-        "express": "^4.21.2",
-        "raw-body": "^3.0.0"
+        "axios": "^1.6.8"
     }
 }
