@@ -20,7 +20,7 @@ export default (router: Router, { env }: { env: Record<string, string> }) => {
                         playback_policy: ['public']
                     },
                     cors_origin: '*',
-                    test: true
+                    test:false
                 },
                 {
                     auth: {
