@@ -4,17 +4,17 @@ This extension provides an interface to upload videos directly to Mux and displa
 
 It utilizes Mux Upload and Mux Player components.
 
-## Screenshots
-
-![Mux Video Upload](./docs/screenshot1.png)
-![Mux Video Processing](./docs/screenshot2.png)
-![Mux Video Player](./docs/screenshot3.png)
-
 ## Limitations:
 - Only one video per field is supported.
 - Only the **Public** playback policy is available for now.
 - Uses the default video quality set in your Mux account.
 - Requires a separately deployed webhook processor to handle upload success and error events. See: [directus_webhooker](https://github.com/gigor/directus_webhooker).
+
+## Plans and todos:
+- Video upload settings - public|signed, video quality etc.
+- Custom view for mux upload collection
+- Select video from previously uploaded
+- Manage mux videos - delete videos from mux when deleted from directus collection
 
 ## Setup:
 
@@ -45,3 +45,9 @@ CONTENT_SECURITY_POLICY_DIRECTIVES__CONNECT_SRC="'self' https://api.mux.com http
 A separate webhook processor is required to handle upload success and error events from Mux. It's a separate service because I could not figure out how to verify webhook requests from Directus endpoints. Suggestions are welcome!
 
 See: [directus_webhooker](https://github.com/gigor/directus_webhooker)
+
+## Screenshots
+
+![Mux Video Upload](./docs/screenshot1.png)
+![Mux Video Processing](./docs/screenshotpng)
+![Mux Video Player](./docs/screenshot3.png)
