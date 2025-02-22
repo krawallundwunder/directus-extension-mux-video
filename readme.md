@@ -49,5 +49,5 @@ See: [directus_webhooker](https://github.com/gigor/directus_webhooker)
 ## Screenshots
 
 ![Mux Video Upload](./docs/screenshot1.png)
-![Mux Video Processing](./docs/screenshotpng)
+![Mux Video Processing](./docs/screenshot2.png)
 ![Mux Video Player](./docs/screenshot3.png)
