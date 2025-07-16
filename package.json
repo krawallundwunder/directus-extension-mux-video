@@ -1,67 +1,78 @@
 {
-    "name": "directus-extension-mux-video",
-    "description": "Adds an interface to upload videos to Mux and manage them in Directus",
-    "icon": "extension",
-    "version": "1.0.0",
-    "keywords": [
-        "directus",
-        "directus-extension",
-        "directus-extension-bundle",
-        "directus-extension-interface",
-        "directus-extension-endpoint",
-        "mux",
-        "directus-extension-mux"
+  "name": "directus-extension-mux-video",
+  "description": "Adds an interface to upload videos to Mux and manage them in Directus",
+  "icon": "extension",
+  "version": "1.0.0",
+  "keywords": [
+    "directus",
+    "directus-extension",
+    "directus-extension-bundle",
+    "directus-extension-interface",
+    "directus-extension-endpoint",
+    "mux",
+    "directus-extension-mux"
+  ],
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "directus:extension": {
+    "type": "bundle",
+    "path": {
+      "app": "dist/app.js",
+      "api": "dist/api.js"
+    },
+    "entries": [
+      {
+        "type": "endpoint",
+        "name": "muxgenerator",
+        "source": "src/muxgenerator/index.ts"
+      },
+      {
+        "type": "interface",
+        "name": "muxvideo",
+        "source": "src/muxvideo/index.ts"
+      }
     ],
-    "type": "module",
-    "files": [
-        "dist"
+    "host": "^10.10.0"
+  },
+  "scripts": {
+    "build": "directus-extension build",
+    "dev": "directus-extension build -w --no-minify",
+    "link": "directus-extension link",
+    "add": "directus-extension add",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@directus/extensions-sdk": "13.1.1",
+    "@eslint/js": "^9.29.0",
+    "@vue/eslint-config-typescript": "^14.5.0",
+    "eslint": "^9.29.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-vue": "^10.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3",
+    "vue": "^3.5.16"
+  },
+  "dependencies": {
+    "@directus/api": "^28.0.3",
+    "@mux/mux-node": "^12.1.0",
+    "@mux/mux-player": "^3.5.1",
+    "@mux/mux-uploader": "^1.2.0",
+    "@mux/mux-video": "^0.26.1",
+    "axios": "^1.10.0",
+    "ofetch": "^1.4.1"
+  },
+  "lint-staged": {
+    "*.{js,vue,ts,mjs,mts}": [
+      "eslint --fix",
+      "prettier --write"
     ],
-    "directus:extension": {
-        "type": "bundle",
-        "path": {
-            "app": "dist/app.js",
-            "api": "dist/api.js"
-        },
-        "entries": [
-            {
-                "type": "endpoint",
-                "name": "muxgenerator",
-                "source": "src/muxgenerator/index.ts"
-            },
-            {
-                "type": "interface",
-                "name": "muxvideo",
-                "source": "src/muxvideo/index.ts"
-            }
-        ],
-        "host": "^10.10.0"
-    },
-    "scripts": {
-        "build": "directus-extension build",
-        "dev": "directus-extension build -w --no-minify",
-        "link": "directus-extension link",
-        "add": "directus-extension add"
-    },
-    "devDependencies": {
-        "@directus/extensions-sdk": "13.1.1",
-        "@eslint/js": "^9.29.0",
-        "@vue/eslint-config-typescript": "^14.5.0",
-        "eslint": "^9.29.0",
-        "eslint-config-prettier": "^10.1.5",
-        "eslint-plugin-simple-import-sort": "^12.1.1",
-        "eslint-plugin-vue": "^10.2.0",
-        "husky": "^9.1.7",
-        "lint-staged": "^16.1.2",
-        "prettier": "^3.5.3",
-        "typescript": "^5.8.3",
-        "vue": "^3.5.16"
-    },
-    "dependencies": {
-        "@mux/mux-node": "^12.1.0",
-        "@mux/mux-player": "^3.5.1",
-        "@mux/mux-uploader": "^1.2.0",
-        "@mux/mux-video": "^0.26.1",
-        "axios": "^1.10.0",
-        "ofetch": "^1.4.1"
-    }
+    "*.{json,md,css,html}": [
+      "prettier --write"
+    ]
+  }
 }

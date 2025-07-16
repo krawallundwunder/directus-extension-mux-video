@@ -1,41 +1,3 @@
-<template>
-  <div class="mux-video">
-    <mux-player
-      v-if="!status || status === 'not_uploaded'"
-      :endpoint="get_upload_url"
-      @success="handle_upload_success"
-      @error="handle_upload_error"
-      id="uploader"
-    >
-      <template v-slot:file-select>
-        <VButton secondary rounded icon v-tooltip="$t('click_to_browse')">
-          <VIcon name="file_upload" />
-        </VButton>
-      </template>
-    </mux-player>
-
-    <div v-else-if="status === 'ready'" class="player-container">
-      <mux-player
-        :playback-id="playback_id"
-        stream-type="on-demand"
-        @error="handle_playback_error"
-      />
-      <VRemove @action="handle_remove" class="remove-button" button confirm secondary>
-        Remove Video
-      </VRemove>
-    </div>
-
-    <div v-else-if="status === 'errored'" class="message-container">
-      <VIcon name="exclamation-triangle" class="icon" x-large />
-      <span>Error processing video</span>
-    </div>
-    <div v-else class="message-container">
-      <VIcon name="refresh" class="spin icon" x-large />
-      <span>Processing video...</span>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import '@mux/mux-player'
 import '@mux/mux-uploader'
@@ -56,176 +18,195 @@ const mux_uploads_collection = 'mux_uploads'
 const emit = defineEmits(['input'])
 const api = useApi()
 
-const playback_id = ref<string | null>(null)
-const asset_id = ref<string | null>(null)
-const upload_url = ref<string | null>(null)
-const upload_id = ref<string | null>(null)
-const upload_url_expires_at = ref<number | null>(null)
+const playbackId = ref<string | null>(null)
+const assetId = ref<string | null>(null)
+const uploadUrl = ref<string | null>(null)
+const uploadId = ref<string | null>(null)
+const uploadUrlExpiresAt = ref<number | null>(null)
 
 const status = ref<
   'not_uploaded' | 'uploaded' | 'asset_created' | 'preparing' | 'ready' | 'errored' | null
 >(null)
 
-watch(
-  () => props.value,
-  async (newValue) => {
-    if (newValue && !upload_id.value) {
-      console.log('Value found, getting video record')
-      await get_video_record()
-    }
-  },
-)
+const pollVideoRecordInterval = ref<NodeJS.Timeout | null>(null)
 
-watch(status, async (new_value) => {
-  console.log('Status changed', new_value)
-  if (new_value && ['preparing', 'uploaded', 'asset_created'].includes(new_value)) {
-    await poll_video_record()
-  } else if (poll_video_record_interval.value) {
-    clearInterval(poll_video_record_interval.value)
+const getVideoRecord = async () => {
+  if (!props.value) {
+    return
   }
-})
+  try {
+    const response = await api.get(`/items/${mux_uploads_collection}/${props.value}`)
+    playbackId.value = response.data.data.playback_id
+    assetId.value = response.data.data.asset_id
 
-const poll_video_record_interval = ref<NodeJS.Timeout | null>(null)
+    status.value = response.data.data.status
+    uploadUrlExpiresAt.value = response.data.data.upload_url_expires_at
+    uploadUrl.value = response.data.data.upload_url
+  } catch {}
+}
 
-let i = 0
-async function poll_video_record() {
-  console.log('Polling video record', i++)
-  poll_video_record_interval.value = setInterval(async () => {
-    await get_video_record()
-    if (
-      (status.value === 'ready' || status.value === 'errored') &&
-      poll_video_record_interval.value
-    ) {
-      clearInterval(poll_video_record_interval.value)
+const pollVideoRecord = async () => {
+  pollVideoRecordInterval.value = setInterval(async () => {
+    await getVideoRecord()
+
+    if ((status.value === 'ready' || status.value === 'errored') && pollVideoRecordInterval.value) {
+      clearInterval(pollVideoRecordInterval.value)
     }
   }, 1000)
 }
 
-async function get_upload_url() {
-  console.log('get_upload_url', upload_url.value)
+const createVideoRecord = async () => {
+  try {
+    const response = await api.post(`/items/${mux_uploads_collection}`, {
+      status: status.value,
+      upload_id: uploadId.value,
+      upload_url: uploadUrl.value,
+      upload_url_expires_at: new Date(uploadUrlExpiresAt.value).toISOString(),
+    })
+    emit('input', response.data.data.id)
+  } catch {}
+}
 
+const createUploadUrl = async () => {
+  try {
+    const response = await api.post('/muxgenerator/get_upload_url')
+
+    status.value = 'not_uploaded'
+    uploadId.value = response.data.id
+    uploadUrl.value = response.data.url
+    uploadUrlExpiresAt.value = new Date().getTime() + response.data.timeout
+
+    await createVideoRecord()
+  } catch {}
+}
+
+const getUploadUrl = async () => {
   if (
-    upload_url.value &&
-    upload_url_expires_at.value &&
-    upload_url_expires_at.value > new Date().getTime() + 1000 * 60 * 10
+    uploadUrl.value &&
+    uploadUrlExpiresAt.value &&
+    uploadUrlExpiresAt.value > new Date().getTime() + 1000 * 60 * 10
   ) {
-    return upload_url.value
+    return uploadUrl.value
   }
 
-  await create_upload_url()
+  await createUploadUrl()
 
-  if (upload_url.value) {
-    return upload_url.value
+  if (uploadUrl.value) {
+    return uploadUrl.value
   }
 
   throw new Error('Failed to get upload URL')
 }
 
-async function create_upload_url() {
-  try {
-    const response = await api.post('/muxgenerator/get_upload_url')
-
-    status.value = 'not_uploaded'
-    upload_id.value = response.data.id
-    upload_url.value = response.data.url
-    upload_url_expires_at.value = new Date().getTime() + response.data.timeout
-
-    await create_video_record()
-  } catch (error) {
-    console.error('Error getting upload URL:', error)
-  }
-}
-
-async function create_video_record() {
-  try {
-    const response = await api.post(`/items/${mux_uploads_collection}`, {
-      status: status.value,
-      upload_id: upload_id.value,
-      upload_url: upload_url.value,
-      upload_url_expires_at: upload_url_expires_at.value,
-    })
-    emit('input', response.data.data.id)
-  } catch (error) {
-    console.error('Error creating video record:', error)
-  }
-}
-
-async function update_video_record() {
+const updateVideoRecord = async () => {
   if (!props.value) {
-    console.error('Can not update upload without video ID')
     return
   }
 
   try {
-    const response = await api.patch(`/items/${mux_uploads_collection}/${props.value}`, {
-      upload_id: upload_id.value,
+    await api.patch(`/items/${mux_uploads_collection}/${props.value}`, {
+      upload_id: uploadId.value,
       status: status.value,
-      playback_id: playback_id.value,
-      asset_id: asset_id.value,
-      upload_url_expires_at: upload_url_expires_at.value,
-      upload_url: upload_url.value,
+      playback_id: playbackId.value,
+      asset_id: assetId.value,
+      upload_url_expires_at: new Date(uploadUrlExpiresAt.value).toISOString(),
+      upload_url: uploadUrl.value,
     })
-
-    console.log('Video record updated', response.data)
-  } catch (error) {
-    console.error('Error updating video record:', error)
-  }
+  } catch {}
 }
 
-async function delete_video_record() {
+const deleteVideoRecord = async () => {
   try {
     await api.delete(`/items/${mux_uploads_collection}/${props.value}`)
+
+    if (assetId.value) {
+      try {
+        await api.delete(`/muxgenerator/asset/${assetId.value}`)
+      } catch {}
+    }
+
     emit('input', null)
-  } catch (error) {
-    console.error('Error deleting video record:', error)
-  }
+  } catch {}
 }
 
-async function get_video_record() {
-  if (!props.value) {
-    return
-  }
-
-  try {
-    const response = await api.get(`/items/${mux_uploads_collection}/${props.value}`)
-    playback_id.value = response.data.data.playback_id
-    asset_id.value = response.data.data.asset_id
-    status.value = response.data.data.status
-    upload_url_expires_at.value = response.data.data.upload_url_expires_at
-    upload_url.value = response.data.data.upload_url
-  } catch (error) {
-    console.error('Error getting video record:', error)
-  }
-}
-
-async function handle_upload_success() {
+const handleUploadSuccess = async () => {
   status.value = 'uploaded'
   try {
-    await update_video_record()
-  } catch (error) {
-    console.error('Error creating video record:', error)
+    await updateVideoRecord()
+  } catch {
+    status.value = 'errored'
+    return
   }
 }
 
-function handle_upload_error(error: any) {
-  console.error('Upload error:', error)
+const handleUploadError = () => {
   status.value = 'errored'
 }
 
-function handle_playback_error(error: any) {
-  console.error('Playback error:', error)
+const handlePlaybackError = () => {}
+
+const handleRemove = async () => {
+  await deleteVideoRecord()
+  emit('input', null)
+  playbackId.value = null
+  uploadId.value = null
+  uploadUrl.value = null
+  status.value = null
+  assetId.value = null
 }
 
-async function handle_remove() {
-  await delete_video_record()
-  emit('input', null)
-  playback_id.value = null
-  upload_id.value = null
-  upload_url.value = null
-  status.value = null
-  asset_id.value = null
-}
+watch(
+  () => props.value,
+  async (newValue) => {
+    if (newValue && !uploadId.value) {
+      await getVideoRecord()
+    }
+  },
+)
+
+watch(status, async (new_value) => {
+  if (new_value && ['preparing', 'uploaded', 'asset_created'].includes(new_value)) {
+    await pollVideoRecord()
+  } else if (pollVideoRecordInterval.value) {
+    clearInterval(pollVideoRecordInterval.value)
+  }
+})
 </script>
+
+<template>
+  <div class="mux-video">
+    <mux-uploader
+      v-if="!status || status === 'not_uploaded'"
+      :endpoint="getUploadUrl"
+      @success="handleUploadSuccess"
+      @error="handleUploadError"
+      id="uploader"
+    >
+      <template v-slot:file-select>
+        <VButton secondary rounded icon v-tooltip="$t('click_to_browse')">
+          <VIcon name="file_upload" />
+        </VButton>
+      </template>
+    </mux-uploader>
+
+    <div v-else-if="status === 'ready'" class="player-container">
+      <mux-player :playback-id="playbackId" stream-type="on-demand" @error="handlePlaybackError" />
+
+      <VButton type="button" icon rounded secondary @click="handleRemove" class="remove-button">
+        <VIcon name="delete" />
+      </VButton>
+    </div>
+
+    <div v-else-if="status === 'errored'" class="message-container">
+      <VIcon name="exclamation-triangle" class="icon" x-large />
+      <span>Error processing video</span>
+    </div>
+    <div v-else class="message-container">
+      <VIcon name="refresh" class="spin icon" x-large />
+      <span>Processing video...</span>
+    </div>
+  </div>
+</template>
 
 <style>
 .mux-video {
