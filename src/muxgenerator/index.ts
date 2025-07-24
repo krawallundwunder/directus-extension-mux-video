@@ -17,7 +17,6 @@ export default (router: Router, context) => {
           playback_policies: ['public'],
           static_renditions: [{ resolution: 'highest' }],
         },
-        test: true, // TODO: Change to false in production
       })
       res.json({ url, id, timeout })
     } catch (error) {
