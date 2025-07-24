@@ -2,7 +2,7 @@
   "name": "directus-extension-mux-video",
   "description": "Adds an interface to upload videos to Mux and manage them in Directus",
   "icon": "extension",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "keywords": [
     "directus",
     "directus-extension",
